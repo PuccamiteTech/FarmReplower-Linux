@@ -5,19 +5,17 @@ set -euo pipefail
 FVRP_DIR=/var/www/html/fvrp
 FVRP_PUBLIC_DIR=$FVRP_DIR/public
 TOOLBAR_ICON_DIR=$FVRP_PUBLIC_DIR/farmville/assets/hashed/assets/decorations
-PLUGIN_DIR=/usr/lib64/mozilla/plugins
-BASILISK_DIR=/opt/basilisk
+LAUNCHER_DIR=/opt/fvrp
+LAUNCHER_REPO_DIR=/tmp/fv-launcher
 
 # variables containing resource links with no filename
-FLASH_LINK_BASE=https://github.com/darktohka/clean-flash-builds/releases/download/v1.7
-BASILISK_LINK_BASE=https://dl.basilisk-browser.org
 ASSET_LINK_BASE=https://farmville.guildedsin.com/all-any/assets
 SUPPLEMENTS_LINK_BASE=https://farmville.guildedsin.com/all-any/supplements
 DEHASHER_LINK_BASE=https://github.com/PuccamiteTech/FVDehasher/releases/download/1.02-SNAPSHOT
+SERVER_LINK_BASE=https://github.com/FV-Replowed/fv-replowed
+LAUNCHER_LINK_BASE=https://github.com/FV-Replowed/fv-launcher
 
 # variables containing filenames used with resource links
-BASILISK_LINK_FILE=basilisk-20260122233106.linux-x86_64-gtk3.tar.xz
-FLASH_LINK_FILE=flash_player_patched_npapi_linux.x86_64.tar.gz
 ASSET_LINK_FILE1=urls-bluepload.unstable.life-farmvilleassets.txt-shallow-20201225-045045-5762m-00000.warc.gz
 ASSET_LINK_FILE2=urls-bluepload.unstable.life-farmvilleassets.txt-shallow-20201225-045045-5762m-00001.warc.gz
 ASSET_LINK_FILE3=urls-bluepload.unstable.life-farmvilleassets.txt-shallow-20201225-045045-5762m-00002.warc.gz
@@ -31,7 +29,9 @@ ITEMS_SQL_FILE=farmvilledb_trimmed.sql
 TOOLBAR_ICON_FILE=toolbar32x32.png
 
 # variables containing full file paths
-BASILISK_SHORTCUT_PATH=/usr/share/applications/basilisk.desktop
+LAUNCHER_PATH=$LAUNCHER_DIR/fvrp.AppImage
+LAUNCHER_ICON_PATH=$LAUNCHER_DIR/icon.png
+LAUNCHER_SHORTCUT_PATH=/usr/share/applications/fvrp.desktop
 AMFPHP_CRED_PATH=$FVRP_PUBLIC_DIR/farmville/flashservices/amfphp/Helpers/config.php
 SITE_CONF_PATH=/etc/apache2/sites-available/000-default.conf
 
@@ -41,10 +41,23 @@ DB_USER=farmer
 DB_PASS=examplePassword
 
 apt-get update
-apt install -y apache2 mariadb-server php php-xml php-dom npm composer php-mysql libgtk2.0-0 libdbus-glib-1-2
-git clone https://github.com/FV-Replowed/fv-replowed $FVRP_DIR
+apt install -y apache2 mariadb-server php php-xml php-dom npm composer php-mysql libfuse2
+
+git clone $LAUNCHER_LINK_BASE $LAUNCHER_REPO_DIR
+chown -R "$SUDO_USER" $LAUNCHER_REPO_DIR
+cd $LAUNCHER_REPO_DIR
+sudo -u "$SUDO_USER" npm install
+sudo -u "$SUDO_USER" npm run build
+mkdir -p $LAUNCHER_DIR
+mv -f dist/*.AppImage $LAUNCHER_PATH
+mv -f logo.png $LAUNCHER_ICON_PATH
+chmod +x $LAUNCHER_PATH
+ln -sf $LAUNCHER_PATH /usr/local/bin/fvrp
+
+git clone $SERVER_LINK_BASE $FVRP_DIR
 chown -R "$SUDO_USER":www-data $FVRP_DIR
 cd $FVRP_DIR
+rm -rf $LAUNCHER_REPO_DIR
 sudo -u "$SUDO_USER" composer update
 sudo -u "$SUDO_USER" npm install --include-workspace-root
 sudo -u "$SUDO_USER" npm run build
@@ -94,40 +107,21 @@ chmod -R 775 $FVRP_DIR
 systemctl daemon-reload
 systemctl restart apache2
 
-wget $BASILISK_LINK_BASE/$BASILISK_LINK_FILE
-mkdir -p $BASILISK_DIR
-tar -xvf $BASILISK_LINK_FILE -C $BASILISK_DIR --strip-components=1
-rm $BASILISK_LINK_FILE
-ln -s $BASILISK_DIR/basilisk /usr/bin/basilisk
-ln -s $BASILISK_DIR/browser/chrome/icons/default/default16.png /usr/share/icons/hicolor/16x16/apps/basilisk.png
-ln -s $BASILISK_DIR/browser/chrome/icons/default/default32.png /usr/share/icons/hicolor/32x32/apps/basilisk.png
-ln -s $BASILISK_DIR/browser/chrome/icons/default/default48.png /usr/share/icons/hicolor/48x48/apps/basilisk.png
-ln -s $BASILISK_DIR/browser/icons/mozicon128.png /usr/share/icons/hicolor/128x128/apps/basilisk.png
-update-alternatives --install /usr/bin/gnome-www-browser gnome-www-browser /usr/bin/basilisk 100
-update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/bin/basilisk 100
-
-cat <<-EOF > $BASILISK_SHORTCUT_PATH
+cat <<-EOF > $LAUNCHER_SHORTCUT_PATH
 [Desktop Entry]
 Version=1.0
-Name=Basilisk
-Comment=Browse the World Wide Web
+Name=FV Replowed
+Comment=Play FV Replowed in a self-contained browser
 Keywords=Internet;WWW;Browser;Web;Explorer
-Exec=env MOZ_PLUGIN_PATH=$PLUGIN_DIR basilisk %u
+Exec=env GAME_URL=http://localhost fvrp
 Terminal=false
 X-MultipleArgs=false
 Type=Application
-Icon=basilisk
+Icon=$LAUNCHER_ICON_PATH
 Categories=Network;WebBrowser;Internet
-MimeType=video/webm;text/html;image/png;image/jpeg;image/gif;application/xml;application/xml;application/xhtml+xml;application/x-xpinstall;application/rss+xml;application/rdf+xml;
+MimeType=application/x-shockwave-flash;
 StartupNotify=true
 EOF
-
-gtk-update-icon-cache -f /usr/share/icons/hicolor
-
-wget $FLASH_LINK_BASE/$FLASH_LINK_FILE
-mkdir -p $PLUGIN_DIR
-tar -xvf $FLASH_LINK_FILE -C $PLUGIN_DIR libflashplayer.so
-rm $FLASH_LINK_FILE
 
 wget $DEHASHER_LINK_BASE/$DEHASHER_LINK_FILE
 unzip $DEHASHER_LINK_FILE
