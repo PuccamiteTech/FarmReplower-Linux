@@ -113,7 +113,7 @@ Version=1.0
 Name=FV Replowed
 Comment=Play FV Replowed in a self-contained browser
 Keywords=Internet;WWW;Browser;Web;Explorer
-Exec=env GAME_URL=http://localhost fvrp
+Exec=sh -c "export GAME_URL='http://localhost' && (fvrp || fvrp --no-sandbox)"
 Terminal=false
 X-MultipleArgs=false
 Type=Application
