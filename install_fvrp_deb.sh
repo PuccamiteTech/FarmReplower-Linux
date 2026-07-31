@@ -9,8 +9,8 @@ LAUNCHER_DIR=/opt/fvrp
 LAUNCHER_REPO_DIR=/tmp/fv-launcher
 
 # variables containing resource links with no filename
-ASSET_LINK_BASE=https://mirror.farmplay.win
-SUPPLEMENTS_LINK_BASE=https://mirror.farmplay.win
+ASSET_LINK_BASE=https://guildedsin.com/downloads
+SUPPLEMENTS_LINK_BASE=https://guildedsin.com/downloads
 DEHASHER_LINK_BASE=https://github.com/PuccamiteTech/FVDehasher/releases/download/1.02-SNAPSHOT
 SERVER_LINK_BASE=https://github.com/FV-Replowed/fv-replowed
 LAUNCHER_LINK_BASE=https://github.com/FV-Replowed/fv-launcher
